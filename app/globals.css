@@ -50,6 +50,12 @@ input, select {
 }
 input:focus, select:focus { outline: 2px solid var(--ac); border-color: transparent; }
 
+textarea {
+  width: 100%; background: #0d121b; color: var(--tx); border: 1px solid var(--bd);
+  border-radius: 12px; padding: 12px; font-size: 16px; font-family: inherit; resize: vertical;
+}
+textarea:focus { outline: 2px solid var(--ac); border-color: transparent; }
+
 .slider { margin: 12px 0; }
 .srow { display: flex; justify-content: space-between; align-items: center; color: var(--tx); font-size: .85rem; }
 .slider input[type=range] { padding: 0; accent-color: var(--ac); height: 28px; }
@@ -65,6 +71,26 @@ input:focus, select:focus { outline: 2px solid var(--ac); border-color: transpar
   background: #0d121b; color: var(--tx); font-size: 1rem; font-weight: 600;
 }
 .seg button.on { background: linear-gradient(135deg, var(--ac), var(--ac2)); color: #04251c; border-color: transparent; }
+
+.sheetbox { margin: 4px 0 16px; padding: 12px; border-radius: 14px; background: #101622; border: 1px dashed var(--bd); }
+.aibtn {
+  width: 100%; margin: 10px 0 6px; padding: 14px; border: 0; border-radius: 14px;
+  font-size: .95rem; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.aibtn:disabled { opacity: .5; }
+.aibtn.all { margin: 0 0 10px; }
+.pill.ai { background: #2a1f4d; color: #c4b5fd; }
+.reason { margin: 4px 0 0; font-size: .78rem; color: var(--mut); font-style: italic; }
+.reason em { color: #c4b5fd; font-style: normal; font-weight: 600; }
+.err { margin: 6px 0 0; padding: 8px 10px; border-radius: 10px; background: #3a1616; color: var(--ng); font-size: .82rem; }
+.spin {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .35); border-top-color: #fff;
+  animation: sp .8s linear infinite; display: inline-block;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
 
 .res header { display: flex; align-items: center; gap: 10px; }
 .res.value { border-color: var(--ac); box-shadow: 0 0 0 1px var(--ac) inset, 0 8px 30px rgba(52, 211, 153, .12); }
