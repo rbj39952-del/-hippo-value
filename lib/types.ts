@@ -25,11 +25,16 @@ export const MALCHANCE_LEVELS = [
   { v: 5, hint: "Malchance majeure (gêné, enfermé, chute devant)" },
 ] as const;
 
+/** Résultat de l'analyse IA : note + justification d'une ligne, par facteur. */
+export type AiResult = Record<FactorKey | "malchance", { note: number; reason: string }>;
+
 export interface Runner {
   id: string;
   name: string;
   weight: string;
   marketOdds: string;
+  sheet: string; // fiche Equidia collée
+  ai?: AiResult; // dernière analyse IA (les curseurs restent modifiables)
   notes: Record<FactorKey, number>;
   malchance: number;
 }
