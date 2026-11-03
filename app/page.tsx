@@ -1,9 +1,10 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { RaceForm } from "@/components/RaceForm";
 import { RunnerCard } from "@/components/RunnerCard";
 import { Report } from "@/components/Report";
 import { useSimulation } from "@/hooks/useSimulation";
+import { analyzeRunner } from "@/lib/analyze";
 import { buildReport, weightedScore } from "@/lib/engine";
 import { Coefficients, DEFAULT_COEFFS, FACTORS, Race, Runner, RunnerResult } from "@/lib/types";
 
@@ -14,6 +15,7 @@ const newRunner = (i: number): Runner => ({
   name: `Cheval ${i + 1}`,
   weight: "",
   marketOdds: "",
+  sheet: "",
   malchance: 0,
   notes: { categorie: 0, poids: 0, corde: 0, distance: 0, terrain: 0, forme: 0, chrono: 0 },
 });
@@ -24,7 +26,14 @@ export default function Page() {
   const [coeffs, setCoeffs] = useState<Coefficients>(DEFAULT_COEFFS);
   const [sigma, setSigma] = useState(8);
   const [rows, setRows] = useState<RunnerResult[] | null>(null);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const { run, running } = useSimulation();
+
+  const runnersRef = useRef(runners);
+  runnersRef.current = runners;
+  const raceRef = useRef(race);
+  raceRef.current = race;
 
   const scores = useMemo(() => runners.map((r) => weightedScore(r, coeffs)), [runners, coeffs]);
 
@@ -34,6 +43,53 @@ export default function Page() {
         ? [...prev, ...Array.from({ length: n - prev.length }, (_, i) => newRunner(prev.length + i))]
         : prev.slice(0, n)
     );
+
+  const analyzeOne = async (id: string) => {
+    const r = runnersRef.current.find((x) => x.id === id);
+    if (!r || r.sheet.trim().length < 20) return;
+    setBusy((b) => ({ ...b, [id]: true }));
+    setErrors((e) => ({ ...e, [id]: "" }));
+    try {
+      const ai = await analyzeRunner(r, raceRef.current, runnersRef.current.length);
+      setRunners((p) =>
+        p.map((x) =>
+          x.id === id
+            ? {
+                ...x,
+                ai,
+                malchance: ai.malchance.note,
+                notes: {
+                  categorie: ai.categorie.note,
+                  poids: ai.poids.note,
+                  corde: ai.corde.note,
+                  distance: ai.distance.note,
+                  terrain: ai.terrain.note,
+                  forme: ai.forme.note,
+                  chrono: ai.chrono.note,
+                },
+              }
+            : x
+        )
+      );
+    } catch (err) {
+      setErrors((e) => ({ ...e, [id]: err instanceof Error ? err.message : "Erreur inconnue" }));
+    } finally {
+      setBusy((b) => ({ ...b, [id]: false }));
+    }
+  };
+
+  // Analyse tous les partants qui ont une fiche, 3 à la fois
+  const analyzeAll = async () => {
+    const todo = runnersRef.current.filter((r) => r.sheet.trim().length >= 20).map((r) => r.id);
+    let i = 0;
+    const worker = async () => {
+      while (i < todo.length) await analyzeOne(todo[i++]);
+    };
+    await Promise.all([worker(), worker(), worker()]);
+  };
+
+  const anyBusy = Object.values(busy).some(Boolean);
+  const withSheet = runners.filter((r) => r.sheet.trim().length >= 20).length;
 
   const launch = async () => {
     const out = await run(scores, RUNS, sigma);
@@ -69,9 +125,15 @@ export default function Page() {
       </details>
 
       <h2 className="rtitle">Partants</h2>
+      <button className="aibtn all" onClick={analyzeAll} disabled={anyBusy || withSheet === 0}>
+        {anyBusy ? <><span className="spin" /> Analyse en cours…</> : `✨ Analyser tous les partants (${withSheet} fiche${withSheet > 1 ? "s" : ""})`}
+      </button>
+
       {runners.map((r, i) => (
         <RunnerCard
           key={r.id} r={r} index={i} score={scores[i]}
+          busy={!!busy[r.id]} error={errors[r.id]}
+          onAnalyze={() => analyzeOne(r.id)}
           onChange={(nr) => setRunners((p) => p.map((x) => (x.id === nr.id ? nr : x)))}
         />
       ))}
